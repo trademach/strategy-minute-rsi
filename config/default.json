@@ -10,5 +10,9 @@
     "EUR_USD",
     "USD_JPY",
     "AUD_USD"
-  ]
+  ],
+  "indicators": {
+    // days
+    "rsi-duration": 30
+  }
 }

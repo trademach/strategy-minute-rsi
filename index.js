@@ -7,12 +7,14 @@ const moment = require('moment');
 
 const indicators = require('./indicators');
 
+// configured constants
+const INSTRUMENTS = config.get('instruments');
+const RSI_DURATION = config.get('indicators.rsi-duration');
+
 const socket = zmq.socket('sub');
 
 const TickSchema = new mongoose.Schema({}, { strict: false, toObject: true });
 const Tick = mongoose.model('ticks', TickSchema, 'ticks');
-
-const INSTRUMENTS = config.get('instruments');
 
 // construct empty queue - last tick in newest
 let tickQueues = {};
@@ -59,7 +61,7 @@ function pullRecentTicks(instrument) {
   Tick
     .find({
       instrument: instrument,
-      time: { $gte: moment().subtract(30, 'minutes').toDate() }
+      time: { $gte: moment().subtract(RSI_DURATION, 'minutes').toDate() }
     })
     .lean()
     .exec((err, ticks) => {

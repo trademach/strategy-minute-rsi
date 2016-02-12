@@ -1,13 +1,17 @@
 'use strict';
 
+const config = require('config');
+
+const RSI_DURATION = config.get('indicators.rsi-duration');
+
 // oldest ticks in the beginning
 function minuteRsi14(ticks) {
 
-  // construct minute array with 30 ticks (for smoothing)
+  // construct minute array, with extra ticks for smoothing
   const minuteTicks = [ticks[ticks.length - 1]];
   let currentTickPos = ticks.length - 2;
 
-  while(minuteTicks.length < 30 && currentTickPos > -1) {
+  while(minuteTicks.length < RSI_DURATION && currentTickPos > -1) {
     const currentTick = ticks[currentTickPos];
     const lastMinuteTick = minuteTicks[0];
 
@@ -18,6 +22,8 @@ function minuteRsi14(ticks) {
 
     currentTickPos--;
   }
+
+  if(minuteTicks.length < 15) return null;
 
   // initial averages
   let initialTotalGains = 0;

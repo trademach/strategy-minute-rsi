@@ -5,6 +5,8 @@ const zmq = require('zmq');
 const mongoose = require('mongoose');
 const moment = require('moment');
 
+const indicators = require('./indicators');
+
 const socket = zmq.socket('sub');
 
 const TickSchema = new mongoose.Schema({}, { strict: false, toObject: true });
@@ -34,6 +36,7 @@ function handleMessage(topic, data) {
   const tick = JSON.parse(data);
 
   const instrument = tick.instrument;
+  console.log(`received - ${instrument}`);
 
   // convert time into timestamp
   tick.timestamp = moment(tick.time).valueOf();
@@ -45,9 +48,10 @@ function handleMessage(topic, data) {
 
   if(INSTRUMENTS.indexOf(instrument) > -1) {
     tickQueues[instrument].push(tick);
-  }
 
-  console.log(`received - ${instrument}`);
+    const rsi = indicators.minuteRsi14(tickQueues[instrument]);
+    console.log(rsi);
+  }
 }
 
 function pullRecentTicks(instrument) {
@@ -55,7 +59,7 @@ function pullRecentTicks(instrument) {
   Tick
     .find({
       instrument: instrument,
-      time: { $gte: moment().subtract(15, 'minutes').toDate() }
+      time: { $gte: moment().subtract(30, 'minutes').toDate() }
     })
     .lean()
     .exec((err, ticks) => {

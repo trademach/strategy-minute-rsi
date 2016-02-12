@@ -1,0 +1,10 @@
+{
+  "name": "trademach-strategy-minute-rsi",
+  "version": "0.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "config": "^1.19.0",
+    "mongoose": "^4.4.3",
+    "zmq": "^2.14.0"
+  }
+}

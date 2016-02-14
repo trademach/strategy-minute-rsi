@@ -11,7 +11,8 @@ const indicators = require('./indicators');
 const INSTRUMENTS = config.get('instruments');
 const RSI_DURATION = config.get('indicators.rsi-duration');
 
-const socket = zmq.socket('sub');
+const socketIn = zmq.socket('sub');
+const socketOut = zmq.socket('pub');
 
 const TickSchema = new mongoose.Schema({}, { strict: false, toObject: true });
 const Tick = mongoose.model('ticks', TickSchema, 'ticks');
@@ -19,6 +20,7 @@ const Tick = mongoose.model('ticks', TickSchema, 'ticks');
 // construct empty queue - last tick in newest
 let tickQueues = {};
 INSTRUMENTS.forEach(i => tickQueues[i] = []);
+let lastRsis = {};
 
 function init() {
   mongoose.connect(config.get('mongo.uri'), config.get('mongo.options'), err => {
@@ -28,9 +30,11 @@ function init() {
     INSTRUMENTS.forEach(pullRecentTicks);
 
     // subscribe to OANDA only
-    socket.connect(config.get('mq.uri'));
-    socket.subscribe('oanda');
-    socket.on('message', handleMessage);
+    socketIn.connect(config.get('mq.inflow.uri'));
+    socketIn.subscribe('oanda');
+    socketIn.on('message', handleMessage);
+
+    socketOut.bindSync(config.get('mq.outflow.uri'));
   });
 }
 
@@ -48,11 +52,55 @@ function handleMessage(topic, data) {
   delete tick.time;
   delete tick.source;
 
+  const lastRsi = lastRsis[instrument];
+
   if(INSTRUMENTS.indexOf(instrument) > -1) {
     tickQueues[instrument].push(tick);
 
-    const rsi = indicators.minuteRsi14(tickQueues[instrument]);
-    console.log(rsi);
+    const newRsi = indicators.minuteRsi14(tickQueues[instrument]);
+
+    let signal;
+
+    // execution of strategy
+    if(lastRsi >= 30 && newRsi < 30) {
+      // short when falling below 30
+      signal = {
+        instrument: instrument,
+        strategy: 'minuteRsi',
+        signal: 'short'
+      };
+
+    } else if(lastRsi <= 50 && newRsi > 50) {
+      // cover short when rising back to abve 50
+      signal = {
+        instrument: instrument,
+        strategy: 'minuteRsi',
+        signal: 'cover_short'
+      };
+
+    } else if(lastRsi <= 70 && newRsi > 70) {
+      signal = {
+        instrument: instrument,
+        strategy: 'minuteRsi',
+        signal: 'long'
+      };
+
+    } else if(lastRsi >= 50 && newRsi < 50) {
+      signal = {
+        instrument: instrument,
+        strategy: 'minuteRsi',
+        signal: 'cover_long'
+      };
+    }
+
+    if(signal) {
+      socketOut.send([
+        config.get('mq.outflow.topic'),
+        JSON.stringify(signal)
+      ]);
+    }
+
+    lastRsis[instrument] = newRsi;
   }
 }
 

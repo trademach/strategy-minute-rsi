@@ -1,6 +1,12 @@
 {
   "mq": {
-    "uri": "tcp://127.0.0.1:8800"
+    "inflow": {
+      "uri": "tcp://127.0.0.1:8800",
+    },
+    "outflow": {
+      "uri": "tcp://127.0.0.1:8801",
+      "topic": "signals"
+    }
   },
   "mongo": {
     "uri": "mongodb://localhost:27017/trademach",

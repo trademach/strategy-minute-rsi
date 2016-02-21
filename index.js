@@ -59,44 +59,35 @@ function handleMessage(topic, data) {
 
     const newRsi = indicators.minuteRsi14(tickQueues[instrument]);
 
-    let signal;
-
     // execution of strategy
+    let signal;
     if(lastRsi >= 30 && newRsi < 30) {
       // short when falling below 30
-      signal = {
-        instrument: instrument,
-        strategy: 'minuteRsi',
-        signal: 'short'
-      };
+      signal = 'short';
 
     } else if(lastRsi <= 50 && newRsi > 50) {
       // cover short when rising back to abve 50
-      signal = {
-        instrument: instrument,
-        strategy: 'minuteRsi',
-        signal: 'cover_short'
-      };
+      signal = 'cover_short';
 
     } else if(lastRsi <= 70 && newRsi > 70) {
-      signal = {
-        instrument: instrument,
-        strategy: 'minuteRsi',
-        signal: 'long'
-      };
+      signal = 'long';
 
     } else if(lastRsi >= 50 && newRsi < 50) {
-      signal = {
-        instrument: instrument,
-        strategy: 'minuteRsi',
-        signal: 'cover_long'
-      };
+      signal = 'cover_long';
     }
 
     if(signal) {
+      const messagerMessage = {
+        strategy: 'minuteRsi',
+        instrument: instrument,
+        signal: signal,
+        ask: tick.ask,
+        bid: tick.bid
+      };
+
       socketOut.send([
-        config.get('mq.outflow.topic'),
-        JSON.stringify(signal)
+        'messager',
+        JSON.stringify(messagerMessage)
       ]);
     }
 

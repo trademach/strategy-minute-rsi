@@ -34,7 +34,7 @@ function init() {
     socketIn.subscribe('oanda');
     socketIn.on('message', handleMessage);
 
-    socketOut.bindSync(config.get('mq.outflow.uri'));
+    socketOut.connect(config.get('mq.outflow.uri'));
   });
 }
 
